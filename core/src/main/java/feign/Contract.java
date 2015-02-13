@@ -42,11 +42,19 @@ public interface Contract {
     @Override
     public List<MethodMetadata> parseAndValidatateMetadata(Class<?> declaring) {
       List<MethodMetadata> metadata = new ArrayList<MethodMetadata>();
+
+      MethodMetadata defaultData = new MethodMetadata();
+      for (Annotation ifaceAnnotation : declaring.getAnnotations()) {
+        processAnnotationOnInterface(defaultData, ifaceAnnotation, declaring);
+      }
+
       for (Method method : declaring.getDeclaredMethods()) {
         if (method.getDeclaringClass() == Object.class) {
           continue;
         }
-        metadata.add(parseAndValidatateMetadata(method));
+        MethodMetadata methodData = new MethodMetadata(defaultData);
+        parseAndValidatateMetadata(methodData, method);
+        metadata.add(methodData);
       }
       return metadata;
     }
@@ -54,8 +62,7 @@ public interface Contract {
     /**
      * Called indirectly by {@link #parseAndValidatateMetadata(Class)}.
      */
-    public MethodMetadata parseAndValidatateMetadata(Method method) {
-      MethodMetadata data = new MethodMetadata();
+    public void parseAndValidatateMetadata(MethodMetadata data, Method method) {
       data.returnType(method.getGenericReturnType());
       data.configKey(Feign.configKey(method));
 
@@ -84,8 +91,16 @@ public interface Contract {
           data.bodyType(method.getGenericParameterTypes()[i]);
         }
       }
-      return data;
     }
+
+    /**
+     * @param data       metadata collected so far relating to the current java interface.
+     * @param annotation annotations present on the current interface annotation.
+     * @param iface      interface currently being processed.
+     */
+    protected abstract void processAnnotationOnInterface(MethodMetadata data,
+                                                         Annotation annotation,
+                                                         Class<?> iface);
 
     /**
      * @param data       metadata collected so far relating to the current java method.
@@ -131,6 +146,18 @@ public interface Contract {
   class Default extends BaseContract {
 
     @Override
+    protected void processAnnotationOnInterface(MethodMetadata data, Annotation ifaceAnnotation,
+                                                Class<?> iface) {
+      Class<? extends Annotation> annotationType = ifaceAnnotation.annotationType();
+      if (annotationType == Headers.class) {
+        String[] headersToParse = Headers.class.cast(ifaceAnnotation).value();
+        checkState(headersToParse.length > 0, "Headers annotation was empty on interface %s.",
+                iface.getName());
+        addHeaders(data, headersToParse);
+      }
+    }
+
+    @Override
     protected void processAnnotationOnMethod(MethodMetadata data, Annotation methodAnnotation,
                                              Method method) {
       Class<? extends Annotation> annotationType = methodAnnotation.annotationType();
@@ -164,18 +191,7 @@ public interface Contract {
         String[] headersToParse = Headers.class.cast(methodAnnotation).value();
         checkState(headersToParse.length > 0, "Headers annotation was empty on method %s.",
                    method.getName());
-        Map<String, Collection<String>>
-            headers =
-            new LinkedHashMap<String, Collection<String>>(headersToParse.length);
-        for (String header : headersToParse) {
-          int colon = header.indexOf(':');
-          String name = header.substring(0, colon);
-          if (!headers.containsKey(name)) {
-            headers.put(name, new ArrayList<String>(1));
-          }
-          headers.get(name).add(header.substring(colon + 2));
-        }
-        data.template().headers(headers);
+        addHeaders(data, headersToParse);
       }
     }
 
@@ -206,6 +222,21 @@ public interface Contract {
         }
       }
       return isHttpAnnotation;
+    }
+
+    private void addHeaders(MethodMetadata data, String[] headersToParse) {
+      Map<String, Collection<String>>
+              headers =
+              new LinkedHashMap<String, Collection<String>>(headersToParse.length);
+      for (String header : headersToParse) {
+        int colon = header.indexOf(':');
+        String name = header.substring(0, colon);
+        if (!headers.containsKey(name)) {
+          headers.put(name, new ArrayList<String>(1));
+        }
+        headers.get(name).add(header.substring(colon + 2));
+      }
+      data.template().headers(headers);
     }
 
     private <K, V> boolean searchMapValues(Map<K, Collection<V>> map, V search) {

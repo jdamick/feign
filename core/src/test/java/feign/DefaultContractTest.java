@@ -42,28 +42,25 @@ public class DefaultContractTest {
 
   @Test
   public void httpMethods() throws Exception {
-    assertThat(
-        contract.parseAndValidatateMetadata(Methods.class.getDeclaredMethod("post")).template())
-        .hasMethod("POST");
+    MethodMetadata data = new MethodMetadata();
+    contract.parseAndValidatateMetadata(data, Methods.class.getDeclaredMethod("post"));
+    assertThat(data.template()).hasMethod("POST");
 
-    assertThat(
-        contract.parseAndValidatateMetadata(Methods.class.getDeclaredMethod("put")).template())
-        .hasMethod("PUT");
+    contract.parseAndValidatateMetadata(data, Methods.class.getDeclaredMethod("put"));
+    assertThat(data.template()).hasMethod("PUT");
 
-    assertThat(
-        contract.parseAndValidatateMetadata(Methods.class.getDeclaredMethod("get")).template())
-        .hasMethod("GET");
+    contract.parseAndValidatateMetadata(data, Methods.class.getDeclaredMethod("get"));
+    assertThat(data.template()).hasMethod("GET");
 
-    assertThat(
-        contract.parseAndValidatateMetadata(Methods.class.getDeclaredMethod("delete")).template())
-        .hasMethod("DELETE");
+    contract.parseAndValidatateMetadata(data, Methods.class.getDeclaredMethod("delete"));
+    assertThat(data.template()).hasMethod("DELETE");
   }
 
   @Test
   public void bodyParamIsGeneric() throws Exception {
-    MethodMetadata
-        md =
-        contract.parseAndValidatateMetadata(BodyParams.class.getDeclaredMethod("post", List.class));
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md,
+            BodyParams.class.getDeclaredMethod("post", List.class));
 
     assertThat(md.bodyIndex())
         .isEqualTo(0);
@@ -76,46 +73,46 @@ public class DefaultContractTest {
   public void tooManyBodies() throws Exception {
     thrown.expect(IllegalStateException.class);
     thrown.expectMessage("Method has too many Body");
+    MethodMetadata md = new MethodMetadata();
     contract.parseAndValidatateMetadata(
-        BodyParams.class.getDeclaredMethod("tooMany", List.class, List.class));
+        md, BodyParams.class.getDeclaredMethod("tooMany", List.class, List.class));
   }
 
   @Test
   public void customMethodWithoutPath() throws Exception {
-    assertThat(contract.parseAndValidatateMetadata(CustomMethod.class.getDeclaredMethod("patch"))
-                   .template())
-        .hasMethod("PATCH")
-        .hasUrl("");
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, CustomMethod.class.getDeclaredMethod("patch"));
+    assertThat(md.template()).hasMethod("PATCH").hasUrl("");
   }
 
   @Test
   public void queryParamsInPathExtract() throws Exception {
-    assertThat(
-        contract.parseAndValidatateMetadata(WithQueryParamsInPath.class.getDeclaredMethod("none"))
-            .template())
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, WithQueryParamsInPath.class.getDeclaredMethod("none"));
+    assertThat(md.template())
         .hasUrl("/")
         .hasQueries();
 
-    assertThat(
-        contract.parseAndValidatateMetadata(WithQueryParamsInPath.class.getDeclaredMethod("one"))
-            .template())
+    md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, WithQueryParamsInPath.class.getDeclaredMethod("one"));
+    assertThat(md.template())
         .hasUrl("/")
         .hasQueries(
             entry("Action", asList("GetUser"))
         );
 
-    assertThat(
-        contract.parseAndValidatateMetadata(WithQueryParamsInPath.class.getDeclaredMethod("two"))
-            .template())
+    md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, WithQueryParamsInPath.class.getDeclaredMethod("two"));
+    assertThat(md.template())
         .hasUrl("/")
         .hasQueries(
             entry("Action", asList("GetUser")),
             entry("Version", asList("2010-05-08"))
         );
 
-    assertThat(
-        contract.parseAndValidatateMetadata(WithQueryParamsInPath.class.getDeclaredMethod("three"))
-            .template())
+    md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, WithQueryParamsInPath.class.getDeclaredMethod("three"));
+    assertThat(md.template())
         .hasUrl("/")
         .hasQueries(
             entry("Action", asList("GetUser")),
@@ -123,9 +120,9 @@ public class DefaultContractTest {
             entry("limit", asList("1"))
         );
 
-    assertThat(
-        contract.parseAndValidatateMetadata(WithQueryParamsInPath.class.getDeclaredMethod("empty"))
-            .template())
+    md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, WithQueryParamsInPath.class.getDeclaredMethod("empty"));
+    assertThat(md.template())
         .hasUrl("/")
         .hasQueries(
             entry("flag", asList(new String[]{null})),
@@ -136,9 +133,8 @@ public class DefaultContractTest {
 
   @Test
   public void bodyWithoutParameters() throws Exception {
-    MethodMetadata
-        md =
-        contract.parseAndValidatateMetadata(BodyWithoutParameters.class.getDeclaredMethod("post"));
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, BodyWithoutParameters.class.getDeclaredMethod("post"));
 
     assertThat(md.template())
         .hasBody("<v01:getAccountsListOfUser/>");
@@ -146,9 +142,8 @@ public class DefaultContractTest {
 
   @Test
   public void producesAddsContentTypeHeader() throws Exception {
-    MethodMetadata
-        md =
-        contract.parseAndValidatateMetadata(BodyWithoutParameters.class.getDeclaredMethod("post"));
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, BodyWithoutParameters.class.getDeclaredMethod("post"));
 
     assertThat(md.template())
         .hasHeaders(
@@ -159,7 +154,8 @@ public class DefaultContractTest {
 
   @Test
   public void withPathAndURIParam() throws Exception {
-    MethodMetadata md = contract.parseAndValidatateMetadata(
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md,
         WithURIParam.class.getDeclaredMethod("uriParam", String.class, URI.class, String.class));
 
     assertThat(md.indexToName())
@@ -174,9 +170,8 @@ public class DefaultContractTest {
 
   @Test
   public void pathAndQueryParams() throws Exception {
-    MethodMetadata
-        md =
-        contract.parseAndValidatateMetadata(WithPathAndQueryParams.class.getDeclaredMethod
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, WithPathAndQueryParams.class.getDeclaredMethod
             ("recordsByNameAndType", int.class, String.class, String.class));
 
     assertThat(md.template())
@@ -191,12 +186,9 @@ public class DefaultContractTest {
 
   @Test
   public void bodyWithTemplate() throws Exception {
-    MethodMetadata
-        md =
-        contract
-            .parseAndValidatateMetadata(FormParams.class.getDeclaredMethod("login", String.class,
-                                                                           String.class,
-                                                                           String.class));
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, FormParams.class.getDeclaredMethod("login",
+            String.class, String.class, String.class));
 
     assertThat(md.template())
         .hasBodyTemplate(
@@ -205,12 +197,9 @@ public class DefaultContractTest {
 
   @Test
   public void formParamsParseIntoIndexToName() throws Exception {
-    MethodMetadata
-        md =
-        contract
-            .parseAndValidatateMetadata(FormParams.class.getDeclaredMethod("login", String.class,
-                                                                           String.class,
-                                                                           String.class));
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, FormParams.class.getDeclaredMethod("login",
+            String.class, String.class, String.class));
 
     assertThat(md.formParams())
         .containsExactly("customer_name", "user_name", "password");
@@ -227,21 +216,17 @@ public class DefaultContractTest {
    */
   @Test
   public void formParamsDoesNotSetBodyType() throws Exception {
-    MethodMetadata
-        md =
-        contract
-            .parseAndValidatateMetadata(FormParams.class.getDeclaredMethod("login", String.class,
-                                                                           String.class,
-                                                                           String.class));
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md, FormParams.class.getDeclaredMethod("login",
+            String.class, String.class, String.class));
 
     assertThat(md.bodyType()).isNull();
   }
 
   @Test
   public void headerParamsParseIntoIndexToName() throws Exception {
-    MethodMetadata
-        md =
-        contract.parseAndValidatateMetadata(
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md,
             HeaderParams.class.getDeclaredMethod("logout", String.class));
 
     assertThat(md.template())
@@ -253,10 +238,9 @@ public class DefaultContractTest {
 
   @Test
   public void customExpander() throws Exception {
-    MethodMetadata
-        md =
-        contract
-            .parseAndValidatateMetadata(CustomExpander.class.getDeclaredMethod("date", Date.class));
+    MethodMetadata md = new MethodMetadata();
+    contract.parseAndValidatateMetadata(md,
+            CustomExpander.class.getDeclaredMethod("date", Date.class));
 
     assertThat(md.indexToExpanderClass())
         .containsExactly(entry(0, DateToMillis.class));

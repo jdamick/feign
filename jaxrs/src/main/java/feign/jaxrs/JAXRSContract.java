@@ -43,21 +43,13 @@ public final class JAXRSContract extends Contract.BaseContract {
   static final String ACCEPT = "Accept";
   static final String CONTENT_TYPE = "Content-Type";
 
+
   @Override
-  public MethodMetadata parseAndValidatateMetadata(Method method) {
-    MethodMetadata md = super.parseAndValidatateMetadata(method);
-    Path path = method.getDeclaringClass().getAnnotation(Path.class);
-    if (path != null) {
-      String pathValue = emptyToNull(path.value());
-      checkState(pathValue != null, "Path.value() was empty on type %s",
-                 method.getDeclaringClass().getName());
-      if (!pathValue.startsWith("/")) {
-        pathValue = "/" + pathValue;
-      }
-      md.template().insert(0, pathValue);
-    }
-    return md;
+  protected void processAnnotationOnInterface(MethodMetadata data, Annotation ifaceAnnotation,
+                                                       Class<?> iface) {
+    processAnnotationOnInterfaceOrMethod(data, iface.getName(), ifaceAnnotation);
   }
+
 
   @Override
   protected void processAnnotationOnMethod(MethodMetadata data, Annotation methodAnnotation,
@@ -70,26 +62,8 @@ public final class JAXRSContract extends Contract.BaseContract {
                  data.template()
                      .method(), http.value());
       data.template().method(http.value());
-    } else if (annotationType == Path.class) {
-      String pathValue = emptyToNull(Path.class.cast(methodAnnotation).value());
-      checkState(pathValue != null, "Path.value() was empty on method %s", method.getName());
-      String methodAnnotationValue = Path.class.cast(methodAnnotation).value();
-      if (!methodAnnotationValue.startsWith("/") && !data.template().toString().endsWith("/")) {
-        methodAnnotationValue = "/" + methodAnnotationValue;
-      }
-      data.template().append(methodAnnotationValue);
-    } else if (annotationType == Produces.class) {
-      String[] serverProduces = ((Produces) methodAnnotation).value();
-      String clientAccepts = serverProduces.length == 0 ? null : emptyToNull(serverProduces[0]);
-      checkState(clientAccepts != null, "Produces.value() was empty on method %s",
-                 method.getName());
-      data.template().header(ACCEPT, clientAccepts);
-    } else if (annotationType == Consumes.class) {
-      String[] serverConsumes = ((Consumes) methodAnnotation).value();
-      String clientProduces = serverConsumes.length == 0 ? null : emptyToNull(serverConsumes[0]);
-      checkState(clientProduces != null, "Consumes.value() was empty on method %s",
-                 method.getName());
-      data.template().header(CONTENT_TYPE, clientProduces);
+    } else {
+      processAnnotationOnInterfaceOrMethod(data, method.getName(), methodAnnotation);
     }
   }
 
@@ -131,5 +105,31 @@ public final class JAXRSContract extends Contract.BaseContract {
       }
     }
     return isHttpParam;
+  }
+
+  private void processAnnotationOnInterfaceOrMethod(MethodMetadata data, String annotatedName,
+                                                    Annotation annotation) {
+    Class<? extends Annotation> annotationType = annotation.annotationType();
+    if (annotationType == Path.class) {
+      String pathValue = emptyToNull(Path.class.cast(annotation).value());
+      checkState(pathValue != null, "Path.value() was empty on %s", annotatedName);
+      String methodAnnotationValue = Path.class.cast(annotation).value();
+      if (!methodAnnotationValue.startsWith("/") && !data.template().url().endsWith("/")) {
+        methodAnnotationValue = "/" + methodAnnotationValue;
+      }
+      data.template().append(methodAnnotationValue);
+    } else if (annotationType == Produces.class) {
+      String[] serverProduces = ((Produces) annotation).value();
+      String clientAccepts = serverProduces.length == 0 ? null : emptyToNull(serverProduces[0]);
+      checkState(clientAccepts != null, "Produces.value() was empty on method %s",
+              annotatedName);
+      data.template().header(ACCEPT, clientAccepts);
+    } else if (annotationType == Consumes.class) {
+      String[] serverConsumes = ((Consumes) annotation).value();
+      String clientProduces = serverConsumes.length == 0 ? null : emptyToNull(serverConsumes[0]);
+      checkState(clientProduces != null, "Consumes.value() was empty on method %s",
+              annotatedName);
+      data.template().header(CONTENT_TYPE, clientProduces);
+    }
   }
 }

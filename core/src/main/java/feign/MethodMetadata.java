@@ -25,6 +25,8 @@ import java.util.Map;
 
 import feign.Param.Expander;
 
+import static feign.Util.checkNotNull;
+
 public final class MethodMetadata implements Serializable {
 
   private static final long serialVersionUID = 1L;
@@ -42,6 +44,20 @@ public final class MethodMetadata implements Serializable {
       new LinkedHashMap<Integer, Class<? extends Expander>>();
 
   MethodMetadata() {
+  }
+
+  /* Copy constructor. */
+  MethodMetadata(MethodMetadata toCopy) {
+    checkNotNull(toCopy, "toCopy");
+    this.configKey = toCopy.configKey;
+    this.returnType = toCopy.returnType;
+    this.urlIndex = toCopy.urlIndex;
+    this.bodyIndex = toCopy.bodyIndex;
+    this.bodyType = toCopy.bodyType;
+    this.template = new RequestTemplate(toCopy.template);
+    this.formParams.addAll(toCopy.formParams);
+    this.indexToName.putAll(toCopy.indexToName);
+    this.indexToExpanderClass.putAll(toCopy.indexToExpanderClass);
   }
 
   /**
